@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수학도서관 행운의 번호 추첨기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Cinzel', 'serif']
+          },
+          colors: {
+            brand: {
+              navy: '#0b1329',
+              deep: '#152244',
+              gold: '#f59e0b',
+              amber: '#d97706',
+              accent: '#38bdf8'
+            }
+          },
+          animation: {
+            'pulse-fast': 'pulse 0.7s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 3s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' }
+            },
+            glow: {
+              '0%': { boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)' },
+              '100%': { boxShadow: '0 0 35px rgba(245, 158, 11, 0.85)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0f172a 55%, #020617 100%);
+      min-height: 100vh;
+      user-select: none;
+    }
+    .grid-math-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(245, 158, 11, 0.3);
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 158, 11, 0.6);
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans grid-math-pattern relative overflow-x-hidden flex flex-col justify-between">
+
+  <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <header class="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-3 flex items-center justify-between z-10">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg shadow-amber-500/20 flex items-center justify-center">
+        <div class="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
+          <span class="text-2xl font-serif font-bold text-amber-400">∑</span >
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-1.5">
+            수학도서관 <span class="text-amber-400">행운 추첨</span>
+          </h1>
+          <span class="px-2 py-0.5 text-xs font-semibold bg-amber-400/10 text-amber-300 border border-amber-400/30 rounded-full">
+            No. 1 ~ 164
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">수학적 확률 속에서 찾아오는 특별한 기쁨!</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-2">
+      <!-- Sound Toggle Button -->
+      <button id="soundToggleBtn" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-amber-400 transition-all flex items-center justify-center" title="효과음 켜기/끄기">
+        <svg id="soundIconOn" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+        </svg>
+        <svg id="soundIconOff" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+        </svg>
+      </button>
+
+      <!-- Fullscreen Button -->
+      <button id="fullscreenBtn" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-amber-400 transition-all flex items-center justify-center" title="전체화면">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+        </svg>
+      </button>
+
+      <!-- Reset Dialog Trigger -->
+      <button id="resetModalTrigger" class="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-semibold transition-all">
+        초기화
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col items-center justify-center gap-6 z-10">
+
+    <!-- Counter Statistics -->
+    <div class="flex items-center gap-3 sm:gap-6 flex-wrap justify-center">
+      <div class="px-4 py-2 rounded-2xl bg-slate-800/60 border border-slate-700/60 backdrop-blur-md flex items-center gap-3">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">남은 번호</span>
+        <span id="remainingCount" class="font-mono text-lg sm:text-xl font-bold text-amber-400">164</span>
+        <span class="text-xs text-slate-500">/ 164</span>
+      </div>
+      <div class="px-4 py-2 rounded-2xl bg-slate-800/60 border border-slate-700/60 backdrop-blur-md flex items-center gap-3">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">추첨된 인원</span>
+        <span id="drawnCount" class="font-mono text-lg sm:text-xl font-bold text-sky-400">0</span>
+        <span class="text-xs text-slate-500">명</span>
+      </div>
+    </div>
+
+    <!-- Center Interactive Draw Box -->
+    <div class="relative w-full max-w-lg sm:max-w-2xl min-h-[380px] sm:min-h-[440px] rounded-3xl bg-gradient-to-b from-slate-800/95 via-slate-900/95 to-black/95 p-6 border-2 border-amber-500/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col items-center justify-between overflow-hidden">
+      <!-- Decorative Mathematical watermarks -->
+      <div class="absolute -top-10 -right-10 text-8xl font-serif font-black text-slate-800/20 select-none pointer-events-none">π</div>
+      <div class="absolute -bottom-8 -left-8 text-8xl font-serif font-black text-slate-800/20 select-none pointer-events-none">∫</div>
+      <div class="absolute inset-0 bg-gradient-to-t from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
+
+      <!-- Glowing border pulse ring -->
+      <div id="glowRing" class="absolute inset-3 rounded-2xl border-2 border-amber-500/30 transition-all duration-300"></div>
+
+      <!-- Result Display Area -->
+      <div class="flex flex-col items-center justify-center z-10 w-full flex-1 my-auto text-center">
+        <div id="drawStatusBadge" class="text-xs sm:text-sm font-bold tracking-widest uppercase text-amber-300 bg-amber-400/20 px-5 py-1.5 rounded-full mb-1 border border-amber-400/40 shadow-sm">
+          행운의 번호를 뽑아보세요
+        </div>
+
+        <!-- Huge Vivid Lucky Number Display -->
+        <div class="relative py-1 flex items-center justify-center w-full">
+          <div id="numberDisplay" class="font-mono font-black text-[7.5rem] sm:text-[10.5rem] md:text-[12.5rem] leading-none tracking-tight text-amber-400 drop-shadow-[0_0_35px_rgba(251,191,36,0.85)] drop-shadow-[0_0_70px_rgba(245,158,11,0.5)] transition-all transform duration-150 select-none">
+            ---
+          </div>
+        </div>
+
+        <p id="subMessage" class="text-xs sm:text-sm text-slate-300 font-medium min-h-[20px]">
+          [스페이스바] 키 또는 아래 버튼을 눌러 추첨하세요
+        </p>
+      </div>
+    </div>
+
+    <!-- Action Draw Button -->
+    <div class="flex flex-col items-center gap-3 w-full max-w-sm">
+      <button id="drawBtn" class="group relative w-full py-4 px-8 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-black text-xl tracking-wider shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 overflow-hidden cursor-pointer">
+        <span class="absolute inset-0 w-full h-full bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></span>
+        <svg class="w-6 h-6 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+        </svg>
+        <span id="drawBtnText">추첨 시작하기</span>
+      </button>
+
+      <span class="text-[11px] text-slate-500 flex items-center gap-1.5">
+        <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800 border border-slate-700 rounded text-slate-300">Space</kbd> 키로도 바로 뽑을 수 있습니다
+      </span>
+    </div>
+
+    <div class="w-full max-w-5xl mt-2 flex flex-col gap-3">
+      <!-- Tabs Switcher -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex gap-2">
+          <button id="tabHistoryBtn" class="px-4 py-2 text-sm font-bold rounded-xl bg-slate-800 text-amber-400 border border-amber-400/30 transition-all flex items-center gap-2">
+            <span>🎉 당첨 내역</span>
+            <span id="tabCountBadge" class="text-xs bg-amber-400/20 px-2 py-0.5 rounded-full">0</span>
+          </button>
+          <button id="tabBoardBtn" class="px-4 py-2 text-sm font-bold rounded-xl text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800 transition-all flex items-center gap-2">
+            <span>🔢 1~164 전체 번호판</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="copyHistoryBtn" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 hover:border-slate-600 transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+            </svg>
+            목록 복사
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab View 1: History List -->
+      <div id="historyView" class="w-full min-h-[160px] max-h-[240px] overflow-y-auto p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur custom-scrollbar">
+        <div id="emptyHistoryMsg" class="flex flex-col items-center justify-center py-10 text-slate-500 text-sm">
+          <p>아직 추첨된 번호가 없습니다.</p>
+          <p class="text-xs text-slate-600 mt-1">추첨하기 버튼을 눌러 첫 번째 행운의 주인공을 확인하세요!</p>
+        </div>
+        <div id="historyGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
+          <!-- Dynamically populated cards -->
+        </div>
+      </div>
+
+      <!-- Tab View 2: Complete Number Matrix (1~164) -->
+      <div id="boardView" class="w-full min-h-[160px] max-h-[300px] overflow-y-auto p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur custom-scrollbar hidden">
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
+          <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-800 border border-slate-700"></span> 대기중 (추첨 가능)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300"></span> 당첨 완료 (제외됨)</span>
+          </div>
+          <span>총 164개 슬롯</span>
+        </div>
+        <div id="numberMatrixGrid" class="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-16 gap-1.5 text-center font-mono">
+          <!-- Dynamically generated 164 slots -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="w-full text-center py-4 text-xs text-slate-500 z-10">
+    <p>© 수학도서관 이벤트 추첨 시스템 | 공정하고 투명한 무작위 난수 기반 추첨 (No-Replacement)</p>
+  </footer>
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl bg-slate-800 text-amber-400 border border-amber-500/30 shadow-2xl text-sm font-semibold opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2">
+    <span id="toastIcon">✨</span>
+    <span id="toastText">알림 메시지</span>
+  </div>
+
+  <!-- Reset Confirmation Modal (Replacing standard confirm) -->
+  <div id="resetModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center shadow-2xl transform transition-all">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mb-4">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2">추첨 현황을 초기화할까요?</h3>
+      <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+        지금까지 당첨된 모든 번호 목록이 삭제되며,<br>1번부터 164번까지 다시 추첨 가능 상태가 됩니다.
+      </p>
+      <div class="flex gap-2.5">
+        <button id="cancelResetBtn" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all">
+          취소
+        </button>
+        <button id="confirmResetBtn" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/30">
+          초기화 실행
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const TOTAL_NUMBERS = 164;
+    let availableNumbers = [];
+    let drawnHistory = []; // Array of { order: number, number: number, timestamp: string }
+    let isRolling = false;
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    // Load or initialize storage
+    function initData() {
+      const savedHistory = localStorage.getItem('math_draw_history');
+      if (savedHistory) {
+        try {
+          drawnHistory = JSON.parse(savedHistory);
+          const drawnSet = new Set(drawnHistory.map(item => item.number));
+          availableNumbers = [];
+          for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+            if (!drawnSet.has(i)) {
+              availableNumbers.push(i);
+            }
+          }
+        } catch (e) {
+          resetAllData();
+        }
+      } else {
+        resetAllData();
+      }
+    }
+
+    function resetAllData() {
+      availableNumbers = Array.from({ length: TOTAL_NUMBERS }, (_, i) => i + 1);
+      drawnHistory = [];
+      localStorage.removeItem('math_draw_history');
+    }
+
+    function persistData() {
+      localStorage.setItem('math_draw_history', JSON.stringify(drawnHistory));
+    }
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTickSound(frequency = 440, duration = 0.04) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playSuccessFanfare() {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.1);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.1 + 0.5);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.1);
+          osc.stop(audioCtx.currentTime + idx * 0.1 + 0.6);
+        });
+      } catch (e) {}
+    }
+
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+      confettiParticles = [];
+      const colors = ['#f59e0b', '#38bdf8', '#ec4899', '#10b981', '#f43f5e', '#a855f7', '#fbbf24'];
+      const count = 120;
+      for (let i = 0; i < count; i++) {
+        confettiParticles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 80,
+          y: canvas.height * 0.45,
+          vx: (Math.random() - 0.5) * 16,
+          vy: -(Math.random() * 12 + 6),
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 10,
+          alpha: 1,
+          gravity: 0.35,
+          friction: 0.985
+        });
+      }
+
+      if (!confettiAnimationId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let aliveCount = 0;
+
+      for (let i = 0; i < confettiParticles.length; i++) {
+        const p = confettiParticles[i];
+        p.vx *= p.friction;
+        p.vy *= p.friction;
+        p.vy += p.gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+        p.alpha -= 0.007;
+
+        if (p.alpha > 0 && p.y < canvas.height + 20) {
+          aliveCount++;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+          ctx.restore();
+        }
+      }
+
+      if (aliveCount > 0) {
+        confettiAnimationId = requestAnimationFrame(animateConfetti);
+      } else {
+        cancelAnimationFrame(confettiAnimationId);
+        confettiAnimationId = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    const remainingCountEl = document.getElementById('remainingCount');
+    const drawnCountEl = document.getElementById('drawnCount');
+    const numberDisplay = document.getElementById('numberDisplay');
+    const drawBtn = document.getElementById('drawBtn');
+    const drawBtnText = document.getElementById('drawBtnText');
+    const drawStatusBadge = document.getElementById('drawStatusBadge');
+    const subMessage = document.getElementById('subMessage');
+    const glowRing = document.getElementById('glowRing');
+    const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+    const tabBoardBtn = document.getElementById('tabBoardBtn');
+    const tabCountBadge = document.getElementById('tabCountBadge');
+    const historyView = document.getElementById('historyView');
+    const boardView = document.getElementById('boardView');
+    const emptyHistoryMsg = document.getElementById('emptyHistoryMsg');
+    const historyGrid = document.getElementById('historyGrid');
+    const numberMatrixGrid = document.getElementById('numberMatrixGrid');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIconOn = document.getElementById('soundIconOn');
+    const soundIconOff = document.getElementById('soundIconOff');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const copyHistoryBtn = document.getElementById('copyHistoryBtn');
+    const resetModalTrigger = document.getElementById('resetModalTrigger');
+    const resetModal = document.getElementById('resetModal');
+    const cancelResetBtn = document.getElementById('cancelResetBtn');
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+
+    let toastTimer = null;
+    function showToast(message, icon = '✨') {
+      toastText.textContent = message;
+      toastIcon.textContent = icon;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    function updateUI() {
+      remainingCountEl.textContent = availableNumbers.length;
+      drawnCountEl.textContent = drawnHistory.length;
+      tabCountBadge.textContent = drawnHistory.length;
+
+      // Update button state if finished
+      if (availableNumbers.length === 0) {
+        drawBtn.disabled = true;
+        drawBtn.classList.remove('from-amber-500', 'via-amber-400', 'to-yellow-500', 'hover:scale-[1.02]');
+        drawBtn.classList.add('bg-slate-700', 'text-slate-500', 'cursor-not-allowed', 'opacity-60');
+        drawBtnText.textContent = '모든 번호 추첨 완료';
+        drawStatusBadge.textContent = '추첨이 모두 종료되었습니다';
+        subMessage.textContent = '총 164명의 번호가 모두 추첨되었습니다.';
+      } else {
+        drawBtn.disabled = false;
+        drawBtn.classList.add('from-amber-500', 'via-amber-400', 'to-yellow-500', 'hover:scale-[1.02]');
+        drawBtn.classList.remove('bg-slate-700', 'text-slate-500', 'cursor-not-allowed', 'opacity-60');
+        drawBtnText.textContent = isRolling ? '추첨 진행 중...' : '추첨 시작하기';
+      }
+
+      // Render History Cards
+      if (drawnHistory.length === 0) {
+        emptyHistoryMsg.classList.remove('hidden');
+        historyGrid.innerHTML = '';
+      } else {
+        emptyHistoryMsg.classList.add('hidden');
+        historyGrid.innerHTML = '';
+
+        // Show latest first
+        [...drawnHistory].reverse().forEach((item, idx) => {
+          const isLatest = idx === 0;
+          const card = document.createElement('div');
+          card.className = `p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all ${
+            isLatest
+              ? 'bg-amber-500/20 border-amber-400/50 text-amber-200 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/40 animate-pulse'
+              : 'bg-slate-800/70 border-slate-700/60 text-slate-300 hover:border-slate-600'
+          }`;
+          card.innerHTML = `
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">${item.order}번째 당첨</span>
+            <span class="text-xl font-mono font-black mt-0.5 ${isLatest ? 'text-amber-300' : 'text-white'}">${item.number}</span>
+          `;
+          historyGrid.appendChild(card);
+        });
+      }
+
+      // Render Matrix Grid (1~164)
+      const drawnSet = new Set(drawnHistory.map(item => item.number));
+      numberMatrixGrid.innerHTML = '';
+      for (let num = 1; num <= TOTAL_NUMBERS; num++) {
+        const isDrawn = drawnSet.has(num);
+        const cell = document.createElement('div');
+        cell.className = `py-1 rounded text-xs transition-all ${
+          isDrawn 
+            ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold'
+            : 'bg-slate-800/80 border border-slate-700/50 text-slate-400 hover:text-slate-200'
+        }`;
+        cell.textContent = num;
+        cell.title = isDrawn ? `${num}번 (이미 당첨됨)` : `${num}번 (추첨 대기)`;
+        numberMatrixGrid.appendChild(cell);
+      }
+    }
+
+    function triggerDraw() {
+      if (isRolling) return;
+      if (availableNumbers.length === 0) {
+        showToast('모든 번호(1~164번)가 이미 뽑혔습니다!', '⚠️');
+        return;
+      }
+
+      isRolling = true;
+      drawBtn.disabled = true;
+      drawBtnText.textContent = '행운 번호 추첨 중...';
+      drawStatusBadge.textContent = '수학적 난수 생성 중...';
+      subMessage.textContent = '과연 어떤 번호가 뽑힐까요?';
+      glowRing.classList.add('border-amber-400', 'animate-glow');
+
+      // Random picking index
+      const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+      const chosenNumber = availableNumbers[randomIndex];
+
+      let elapsed = 0;
+      let interval = 45; // initial fast speed
+      const totalDuration = 2400; // 2.4s rolling duration
+      let startTime = performance.now();
+
+      function rollStep(timestamp) {
+        elapsed = timestamp - startTime;
+
+        if (elapsed < totalDuration) {
+          // Dynamic temporary number display
+          const randomDisplayNumber = Math.floor(Math.random() * TOTAL_NUMBERS) + 1;
+          numberDisplay.textContent = String(randomDisplayNumber).padStart(3, '0');
+
+          // Tone pitch shifts as it slows down
+          const progress = elapsed / totalDuration;
+          const soundFreq = 300 + Math.floor(progress * 400);
+          playTickSound(soundFreq, 0.03);
+
+          // Ease out speed effect
+          const nextDelay = 40 + Math.pow(progress, 3) * 260;
+          setTimeout(() => {
+            requestAnimationFrame(rollStep);
+          }, nextDelay);
+        } else {
+          // Finalize selection
+          finalizeDraw(chosenNumber, randomIndex);
+        }
+      }
+
+      requestAnimationFrame(rollStep);
+    }
+
+    function finalizeDraw(number, indexInAvailable) {
+      // Remove the number from available pool (No duplicates!)
+      availableNumbers.splice(indexInAvailable, 1);
+
+      // Record in history
+      const drawOrder = drawnHistory.length + 1;
+      drawnHistory.push({
+        order: drawOrder,
+        number: number,
+        timestamp: new Date().toLocaleTimeString('ko-KR')
+      });
+      persistData();
+
+      // Display final state with punchy pop animation
+      numberDisplay.textContent = String(number).padStart(3, '0');
+      numberDisplay.classList.add('scale-110', 'text-yellow-300');
+      setTimeout(() => {
+        numberDisplay.classList.remove('scale-110', 'text-yellow-300');
+      }, 400);
+
+      drawStatusBadge.textContent = `축하합니다! 제 ${drawOrder}회 당첨 번호`;
+      subMessage.innerHTML = `<span class="text-amber-400 font-bold">${number}번</span>이(가) 당첨되었습니다! (남은 번호: ${availableNumbers.length}개)`;
+      glowRing.classList.remove('animate-glow');
+
+      // Celebration fanfare & Confetti
+      playSuccessFanfare();
+      triggerConfetti();
+
+      isRolling = false;
+      updateUI();
+    }
+
+    tabHistoryBtn.addEventListener('click', () => {
+      tabHistoryBtn.className = 'px-4 py-2 text-sm font-bold rounded-xl bg-slate-800 text-amber-400 border border-amber-400/30 transition-all flex items-center gap-2';
+      tabBoardBtn.className = 'px-4 py-2 text-sm font-bold rounded-xl text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800 transition-all flex items-center gap-2';
+      historyView.classList.remove('hidden');
+      boardView.classList.add('hidden');
+    });
+
+    tabBoardBtn.addEventListener('click', () => {
+      tabBoardBtn.className = 'px-4 py-2 text-sm font-bold rounded-xl bg-slate-800 text-amber-400 border border-amber-400/30 transition-all flex items-center gap-2';
+      tabHistoryBtn.className = 'px-4 py-2 text-sm font-bold rounded-xl text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800 transition-all flex items-center gap-2';
+      boardView.classList.remove('hidden');
+      historyView.classList.add('hidden');
+    });
+
+    // Sound toggle
+    soundToggleBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      if (soundEnabled) {
+        initAudio();
+        soundIconOn.classList.remove('hidden');
+        soundIconOff.classList.add('hidden');
+        showToast('효과음이 켜졌습니다.', '🔊');
+      } else {
+        soundIconOn.classList.add('hidden');
+        soundIconOff.classList.remove('hidden');
+        showToast('효과음이 꺼졌습니다.', '🔇');
+      }
+    });
+
+    // Fullscreen Toggle
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        showToast('전체화면 모드로 전환되었습니다.', '⛶');
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    });
+
+    // Copy Drawn Numbers
+    copyHistoryBtn.addEventListener('click', () => {
+      if (drawnHistory.length === 0) {
+        showToast('복사할 당첨 내역이 없습니다.', 'ℹ️');
+        return;
+      }
+      const text = drawnHistory.map(item => `${item.order}등/순번: ${item.number}번`).join('\n');
+      const textarea = document.createElement('textarea');
+      textarea.value = `[수학도서관 행운 추첨 결과]\n총 당첨 인원: ${drawnHistory.length}명\n\n` + text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('당첨 목록이 클립보드에 복사되었습니다!', '📋');
+      } catch (err) {
+        showToast('복사에 실패했습니다.', '❌');
+      }
+      document.body.removeChild(textarea);
+    });
+
+    // Reset Modal Logic
+    resetModalTrigger.addEventListener('click', () => {
+      resetModal.classList.remove('hidden');
+      resetModal.classList.add('flex');
+    });
+
+    cancelResetBtn.addEventListener('click', () => {
+      resetModal.classList.add('hidden');
+      resetModal.classList.remove('flex');
+    });
+
+    confirmResetBtn.addEventListener('click', () => {
+      resetAllData();
+      numberDisplay.textContent = '---';
+      drawStatusBadge.textContent = '행운의 번호를 뽑아보세요';
+      subMessage.textContent = '[스페이스바] 키 또는 아래 버튼을 눌러 추첨하세요';
+      updateUI();
+      resetModal.classList.add('hidden');
+      resetModal.classList.remove('flex');
+      showToast('모든 추첨 데이터가 초기화되었습니다 (1~164번 준비).', '🔄');
+    });
+
+    // Click on button
+    drawBtn.addEventListener('click', triggerDraw);
+
+    // Keyboard support (Space key)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        triggerDraw();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initData();
+      updateUI();
+    });
+  </script>
+</body>
+</html>
